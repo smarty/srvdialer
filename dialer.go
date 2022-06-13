@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func NewDialer(options ...Option) NetworkDialer {
+func New(options ...Option) NetworkDialer {
 	var config configuration
 	Options.apply(options...)(&config)
 	return &simpleDialer{dialer: config.NetworkDialer, resolver: config.NameResolver}
