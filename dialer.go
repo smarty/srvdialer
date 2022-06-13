@@ -11,20 +11,25 @@ import (
 func New(options ...Option) NetworkDialer {
 	var config configuration
 	Options.apply(options...)(&config)
-	return &simpleDialer{dialer: config.NetworkDialer, resolver: config.NameResolver}
+	return &simpleDialer{dialer: config.NetworkDialer, resolver: config.NameResolver, allowedSuffixes: config.AllowedSuffixes}
 }
 
 type simpleDialer struct {
-	dialer   NetworkDialer
-	resolver NameResolver
+	dialer          NetworkDialer
+	resolver        NameResolver
+	allowedSuffixes []string
 }
 
 func (this *simpleDialer) DialContext(ctx context.Context, network string, address string) (net.Conn, error) {
-	if !isConsulService(address) {
+	if !this.isConsulService(address) {
 		return this.dialer.DialContext(ctx, network, address)
 	}
 
-	_, records, err := net.DefaultResolver.LookupSRV(ctx, "", "", address)
+	if index := strings.LastIndex(address, ":"); index > 0 {
+		address = address[0:index] // remove the port information
+	}
+
+	_, records, err := this.resolver.LookupSRV(ctx, "", "", address)
 	if err != nil {
 		return nil, err
 	} else if len(records) == 0 {
@@ -35,8 +40,17 @@ func (this *simpleDialer) DialContext(ctx context.Context, network string, addre
 	address = parseTargetAddress(selected.Target, selected.Port)
 	return this.dialer.DialContext(ctx, network, address)
 }
-func isConsulService(value string) bool {
-	return strings.HasSuffix(value, ".consul") && strings.Contains(value, ".service.")
+func (this *simpleDialer) isConsulService(value string) bool {
+	return this.containsAllowedSuffix(value) && strings.Contains(value, ".service.")
+}
+func (this *simpleDialer) containsAllowedSuffix(value string) bool {
+	for _, suffix := range this.allowedSuffixes {
+		if strings.HasSuffix(value, suffix) {
+			return true
+		}
+	}
+
+	return false
 }
 func parseTargetAddress(address string, port uint16) string {
 	if port == 0 {
