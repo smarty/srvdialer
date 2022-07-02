@@ -5,6 +5,11 @@ import (
 	"net"
 )
 
+type LegacyDialer interface {
+	Dial(string, string) (net.Conn, error)
+	NetworkDialer
+}
+
 type NetworkDialer interface {
 	DialContext(context.Context, string, string) (net.Conn, error)
 }
