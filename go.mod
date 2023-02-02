@@ -1,3 +1,3 @@
-module github.com/smarty/consul-dialer
+module github.com/smarty/srvdialer
 
 go 1.18

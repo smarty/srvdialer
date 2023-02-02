@@ -1,4 +1,4 @@
-package consuldialer
+package srvdialer
 
 import (
 	"fmt"
@@ -22,9 +22,9 @@ func (singleton) NameResolver(value NameResolver) Option {
 }
 
 // InterceptedDomains indicates what domain should be intercepted when performing a lookup. For example, if the
-// intercepting domains are "k8s" and "consul" and the target address to be resolved is "mydomain.com", then standard
-// domain-name resolution will occur. However, if the target address to be resolved is "something.consul", then the
-// custom domain-name resolution will occur.
+// intercepting domains are "k8s" and "consul" and the target address to be resolved is "mydomain.com", then regular
+// domain-name resolution will occur. However, if the target address to be resolved is "something.service.consul", then
+// the custom "intercepting" domain-name resolution will occur.
 // The default intercepted domain is "consul".
 func (singleton) InterceptedDomains(values ...string) Option {
 	return func(this *configuration) {

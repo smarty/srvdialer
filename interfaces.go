@@ -1,4 +1,4 @@
-package consuldialer
+package srvdialer
 
 import (
 	"context"

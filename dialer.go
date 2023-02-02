@@ -1,4 +1,4 @@
-package consuldialer
+package srvdialer
 
 import (
 	"context"
@@ -21,7 +21,7 @@ type simpleDialer struct {
 }
 
 func (this *simpleDialer) DialContext(ctx context.Context, network string, address string) (net.Conn, error) {
-	if !this.isConsulService(address) {
+	if !this.isService(address) {
 		return this.dialer.DialContext(ctx, network, address)
 	}
 
@@ -40,7 +40,7 @@ func (this *simpleDialer) DialContext(ctx context.Context, network string, addre
 	address = parseTargetAddress(selected.Target, selected.Port)
 	return this.dialer.DialContext(ctx, network, address)
 }
-func (this *simpleDialer) isConsulService(value string) bool {
+func (this *simpleDialer) isService(value string) bool {
 	return this.containsAllowedSuffix(value) && strings.Contains(value, ".service.")
 }
 func (this *simpleDialer) containsAllowedSuffix(value string) bool {
