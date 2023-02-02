@@ -3,6 +3,7 @@ package consuldialer
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 type configuration struct {
@@ -70,8 +71,12 @@ func (singleton) apply(options ...Option) Option {
 	}
 }
 func (singleton) defaults(options ...Option) []Option {
+	systemDialer := &net.Dialer{
+		Timeout:   time.Second * 15,
+		KeepAlive: time.Second * 30,
+	}
 	return append([]Option{
-		Options.NetworkDialer(&net.Dialer{}),
+		Options.NetworkDialer(systemDialer),
 		Options.NameResolver(net.DefaultResolver),
 		Options.InterceptedDomains("consul"),
 		Options.InterceptedPorts(80, 443),
