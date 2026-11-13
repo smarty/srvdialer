@@ -26,6 +26,24 @@ func TestDialFallsThroughToNextRecordOnFailure(t *testing.T) {
 	assertDialed(t, dialer, "10.0.0.1:80", "10.0.0.2:80", "10.0.0.3:80")
 }
 
+func TestDialTriesAtMostMaxDialAttemptsRecords(t *testing.T) {
+	dialer := &fakeDialer{errors: map[string]error{"10.0.0.1:80": refused(), "10.0.0.2:80": refused(), "10.0.0.3:80": refused()}}
+	resolver := &fakeResolver{records: []*net.SRV{
+		{Target: "10.0.0.1", Port: 80},
+		{Target: "10.0.0.2", Port: 80},
+		{Target: "10.0.0.3", Port: 80},
+		{Target: "10.0.0.4", Port: 80}, // would succeed, but is past the cap
+	}}
+	subject := New(Options.NetworkDialer(dialer), Options.NameResolver(resolver))
+
+	conn, err := subject.DialContext(context.Background(), "tcp", "street.service.consul:80")
+
+	if conn != nil || !errors.Is(err, syscall.ECONNREFUSED) {
+		t.Fatalf("expected the third dial error, got conn=%v err=%v", conn, err)
+	}
+	assertDialed(t, dialer, "10.0.0.1:80", "10.0.0.2:80", "10.0.0.3:80")
+}
+
 func TestDialStopsAtFirstSuccess(t *testing.T) {
 	dialer := &fakeDialer{}
 	resolver := &fakeResolver{records: []*net.SRV{{Target: "10.0.0.1", Port: 80}, {Target: "10.0.0.2", Port: 80}}}
