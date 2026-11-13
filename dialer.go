@@ -36,9 +36,19 @@ func (this *simpleDialer) DialContext(ctx context.Context, network string, addre
 		return nil, &net.DNSError{Err: "NXDOMAIN", Name: address}
 	}
 
-	selected := records[0] // already sorted and randomized per RFC; for the moment, pick the top one rather than falling through each
-	address = parseTargetAddress(selected.Target, selected.Port)
-	return this.dialer.DialContext(ctx, network, address)
+	// Records are already sorted by priority and randomized by weight per RFC 2782. Try each in that order: a failed
+	// connect never reached the target, so moving on to the next one is always safe. Stop once the caller's context
+	// ends, since every remaining attempt would fail the same way.
+	for _, selected := range records {
+		var conn net.Conn
+		if conn, err = this.dialer.DialContext(ctx, network, parseTargetAddress(selected.Target, selected.Port)); err == nil {
+			return conn, nil
+		} else if ctx.Err() != nil {
+			break
+		}
+	}
+
+	return nil, err // the last attempt's error, so callers can still inspect it with errors.Is/As
 }
 func (this *simpleDialer) isService(value string) bool {
 	return this.containsAllowedSuffix(value) && strings.Contains(value, ".service.")
